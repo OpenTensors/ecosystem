@@ -114,6 +114,9 @@
         MIOpen
     }
 
+    ROCm -> CUDA
+    ROCm -> OpenCL
+
     subgraph cluster_pn {
         label="Preferred Networks"
         color="#21318F"
