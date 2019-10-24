@@ -1,0 +1,272 @@
+ digraph{    
+    node[shape=plaintext,color=none]
+    //   splines=polyline
+    // concentrate=true
+    nodesep=0.3
+    //   layout=dagre
+    edge[penwidth=1,arrowsize=0.6]
+  
+  
+  
+    // Hardware
+    // {
+    //     rank = same
+    //     "CPU (Intel)"
+    //     "CPU (AMD)"
+    //     "CPU (ARM)"
+    //     "Nervana NNP"
+    //     "GPU (Nvidia)"
+    //     "GPU (AMD)"
+    //     "Apple SoC"
+    //     "GPU (Intel)"
+    //     "TPU"
+    //     "Accelerator"
+    // } 
+    
+    Keras->"TensorFlow Graph"
+    
+    NumPy -> CPU
+    CPU -> {"CPU (Intel)" "CPU (AMD)" "CPU (ARM)"}
+    subgraph cluster_intel {
+        label=Intel
+        color="#0f7dc2"
+        fontcolor="#0f7dc2"
+        // https://github.com/intel/ideep
+        "iDeep" -> "DNNL"
+        // https://github.com/intel/mkl-dnn
+        "DNNL" -> {"CPU (Intel)" "GPU (Intel)"}
+        // https://github.com/intel-analytics/BigDL
+        // https://github.com/intel-analytics/BigDL-core/blob/a1f141cd82b59077f6d5e5234eeb693431a90368/native-dnn/src/main/c/com_intel_analytics_bigdl_mkl_Memory.h
+        "BigDL" -> "DNNL"
+        "MKL" -> "CPU (Intel)"
+        
+        // https://github.com/NervanaSystems/ngraph
+        "nGraph"
+        "Nervana NNP"
+        "MLIR: nGraph"
+        "PlaidML"
+        clDNN->{"CPU (Intel)" "GPU (Intel)"}
+        "OpenVino"->clDNN
+    }
+    
+    // https://software.intel.com/en-us/openvino-toolkit/deep-learning-cv
+    {Caffe "TensorFlow Graph" MXNet ONNX}->OpenVino
+    // https://docs.openvinotoolkit.org/latest/index.html
+    OpenVino->{"CPU (Intel)" "GPU (Intel)" "Accelerator"}
+    
+    // https://github.com/plaidml/plaidml
+    {Keras ONNX}->PlaidML
+    "PlaidML"->{"GPU (AMD)" "GPU (Intel)" "GPU (Nvidia)"}
+
+    // https://www.ngraph.ai/ecosystem#hardware-&-backend-support
+    {"TensorFlow Graph" MXNet}->nGraph->{"CPU (Intel)" clDNN PlaidML "Nervana NNP"}
+    
+    // https://bigdl-project.github.io/0.9.0/#ProgrammingGuide/tensorflow-support/
+    "TensorFlow Graph" -> "BigDL"
+    "BigDL" -> "TensorFlow Graph"
+    // https://bigdl-project.github.io/0.9.0/#ProgrammingGuide/caffe-support/
+    "BigDL" -> "Caffe"
+    "Caffe" -> "BigDL"
+    // https://bigdl-project.github.io/0.9.0/#ProgrammingGuide/keras-support/
+    "Keras" -> "BigDL"
+
+    // https://github.com/intel-analytics/BigDL-core/tree/master/bigquant/src/main/c
+    "BigDL" -> "BigQuant"
+    // https://github.com/intel-analytics/BigDL-core/blob/master/mkl2017-xeon-blas/src/main/c/mkl.c
+    "BigDL" -> "MKL"
+    // https://github.com/intel-analytics/BigDL-core/blob/master/opencv/src/main/java/com/intel/analytics/bigdl/opencv/OpenCV.java
+    "BigDL" -> "OpenCV"
+    "OpenCV" -> "CPU"
+
+    // http://caffe.berkeleyvision.org/installation.html
+    "Caffe" -> {"CUDA" "BLAS" "OpenCV" "cuDNN"}
+    
+    // https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms
+    "BLAS"->"CPU"
+    
+    // https://en.wikipedia.org/wiki/Math_Kernel_Library
+    "BLAS" -> "MKL"
+
+    // https://en.wikipedia.org/wiki/AMD_Core_Math_Library
+    "BLAS" -> "AMD Math Library"
+  
+    //   https://docs.opencv.org/master/d7/d9f/tutorial_linux_install.html
+    "OpenCV"->CUDA
+    subgraph cluster_nvidia {
+        label=Nvidia
+        color="#76B900"
+        fontcolor="#76B900"
+        // https://en.wikipedia.org/wiki/CUDA
+        "CUDA"->"NVVM"-> "GPU (Nvidia)"
+        "cuDNN" -> "GPU (Nvidia)"
+        "GPU (Nvidia)"
+        "TensorRT"->CUDA
+    
+    }
+    subgraph cluster_amd {
+        label=AMD
+        // https://en.wikipedia.org/wiki/CUDA
+        "AMD Math Library"-> "CPU (AMD)"
+        "GPU (AMD)"
+        // https://github.com/tensorflow/mlir/pull/146
+        "ROCDL"->"GPU (AMD)"
+        "ROCm"->"GPU (AMD)"
+        MIOpen
+    }
+
+    subgraph cluster_pn {
+        label="Preferred Networks"
+        color="#21318F"
+        fontcolor="#21318F"
+        "Chainer"
+        "ChainerX"
+        "CuPy"
+    }
+    // https://github.com/chainer/chainer/blob/master/chainerx_cc/CMakeLists.txt
+    "Chainer"->{CuPy iDeep ChainerX "NumPy"}
+    
+    "NumPy API"->{CuPy ChainerX NumPy}
+    
+    "CuPy"->{CUDA cuDNN}
+    
+    
+    ChainerX->{CuPy CUDA BLAS}
+    
+    // https://github.com/NervanaSystems/ngraph/pull/3786
+    // https://github.com/NervanaSystems/ngraph/pull/3013
+    nGraph -> "MLIR: nGraph" -> {"MLIR: LLVM" "MLIR: Affine"}
+    
+    
+    subgraph cluster_google {
+        label=Google
+        color="#4285f4"
+        fontcolor="#4285f4"
+        Keras
+        "MLIR: LLVM"
+        "MLIR: Affine"
+        "TensorFlow Graph"
+        // https://github.com/tensorflow/mlir/tree/master/lib/Conversion
+        "MLIR: GPU"-> {"MLIR: CUDA" "MLIR: NVVM" "MLIR: SPIR-V" "MLIR: ROCDL"}
+        "MLIR: Loop"-> {"MLIR: Standard" "MLIR: GPU"}
+        "MLIR: Standard"->{"MLIR: LLVM" "MLIR: SPIR-V"}
+        "MLIR: Vector"->"MLIR: LLVM"   
+        // https://github.com/tensorflow/community/pull/115
+        "TensorFlow Graph" -> "MLIR: TensorFlow"
+        
+        "TensorFlow Graph"->"XLA"->TPU
+    }
+    // https://github.com/google/jax
+    "NumPy API"->JAX->XLA
+    // https://www.tensorflow.org/xla#supported_platforms
+    XLA->{"GPU (Nvidia)" "CPU (Intel)"}
+    PyTorch->XLA
+    
+    "MLIR: CUDA"-> CUDA
+    "MLIR: LLVM"->LLVM
+    "MLIR: NVVM"->NVVM
+    "MLIR: ROCDL"->ROCDL
+    LLVM->CPU
+    "MLIR: SPIR-V"->"SPIR-V"
+    
+    // https://www.khronos.org/spir/
+    "SPIR-V"->{OpenCL Vulkan OpenGL}
+    LLVM->"SPIR-V"->LLVM
+    
+    // https://en.wikipedia.org/wiki/Vulkan_(API)
+    Vulkan->{"GPU (AMD)" "GPU (Nvidia)" "CPU (Intel)" "CPU (ARM)"}
+    
+    subgraph cluster_arm {
+        label=ARM
+        color="#3d91ba"
+        fontcolor="#3d91ba"
+        "CPU (ARM)"
+    }
+    
+    // https://en.wikipedia.org/wiki/OpenCL#Devices
+    OpenCL->{CPU "GPU (AMD)" "GPU (Nvidia)" "GPU (Intel)"}
+    
+    // https://rocm-documentation.readthedocs.io/en/latest/ROCm_Libraries/ROCm_Libraries.html
+    BLAS->{rocBLAS}
+    
+    // https://rocm-documentation.readthedocs.io/en/latest/Deep_learning/Deep-learning.html
+    "XLA"->ROCm
+    "TensorFlow Graph"->ROCm
+    MIOpen->ROCm
+    PyTorch->ROCm
+    Caffe->ROCm
+    
+    
+    subgraph cluster_facebook {
+        label=Facebook
+        color="#3b5998"
+        fontcolor="#3b5998"
+        PyTorch->"Glow"
+        PyTorch->"Tensor Comprehensions"
+    }
+    Glow->{LLVM CUDA}
+    PyTorch->{CPU CUDA}
+    // https://pytorch.org/get-started/locally/
+    PyTorch->{CUDA CPU}
+    
+    // https://research.fb.com/blog/2018/02/announcing-tensor-comprehensions/
+    "Tensor Comprehensions"->{CUDA LLVM}
+    
+    Glow->Accelerator
+    
+    // 
+    "NumPy API"->Numba->{LLVM NVVM ROCm}
+    
+    Relay->TVM->VTA->Accelerator
+    // https://tvm.ai/2017/10/06/nnvm-compiler-announcement
+    {ONNX MXNet "Core ML"}->NNVM->TVM->{LLVM CUDA OpenCL}
+    
+
+    
+    subgraph cluster_apple {
+        label=Apple
+        color="#a3aaae"
+        fontcolor="#a3aaae"
+        // https://en.wikipedia.org/wiki/Metal_(API)
+        "Core ML"->Metal->"Apple SoC"
+    }
+    
+    Metal->{"GPU (Intel)" "GPU (AMD)" "GPU (Nvidia)"} 
+    
+    
+    // https://github.com/intel/mkl-dnn
+    {PyTorch "TensorFlow Graph"}->"DNNL"
+
+    
+    // https://github.com/onnx/tutorials
+    {Chainer Caffe "Core ML" Keras MXNet PyTorch "TensorFlow Graph"} -> ONNX
+    ONNX->{"Core ML" TensorRT "TensorFlow Graph" "ONNX Runtime"}
+    // https://github.com/microsoft/onnxruntime
+    "ONNX Runtime"->{CUDA "nGraph" TensorRT DNNL}
+    
+    
+    "NumPy API"->"Dask Array"->NumPy
+
+    subgraph cluster_amazon {
+        label=Amazon
+        color="#ff9900"
+        fontcolor="#ff9900"
+        MXNet
+    }
+    
+    MXNet->TVM
+    // https://mxnet.apache.org/api/faq/caffe
+    Caffe->MXNet
+    // https://mxnet.apache.org/api/faq/nnpack
+    MXNet->NNPACK
+    // https://mxnet.apache.org/api/faq/float16
+    MXNet->{CUDA cuDNN}
+    // https://github.com/apache/incubator-mxnet/blob/master/docs/python_docs/python/tutorials/performance/backend/mkldnn/mkldnn_readme.md
+    MXNet->DNNL
+    //  https://mxnet.incubator.apache.org/api/python/docs/api/ndarray/index.html
+    "NumPy API"->MXNet
+    
+    // https://github.com/Maratyszcza/NNPACK
+    {PyTorch Caffe}->NNPACK->{CPU}
+    
+    ONNX->TVM
+}
